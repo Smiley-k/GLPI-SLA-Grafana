@@ -1,0 +1,21 @@
+SELECT
+  t.id AS "ticket_number",
+  t.name AS "ticket_subject",
+  t.date AS "created_date",
+  DATE_FORMAT(t.date, '%H:%i') AS "created_time",
+  TIMESTAMPDIFF(MINUTE, t.date, NOW()) AS "minutes_passed",
+  CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, t.date, NOW()) / 60), 'ч ', 
+         MOD(TIMESTAMPDIFF(MINUTE, t.date, NOW()), 60), 'м') AS "time_in_queue",
+  CASE 
+    WHEN TIMESTAMPDIFF(MINUTE, t.date, NOW()) > 30 THEN '🔴 Нарушение SLA'
+    WHEN TIMESTAMPDIFF(MINUTE, t.date, NOW()) BETWEEN 25 AND 30 THEN '🟡 Скоро нарушение SLA'
+    ELSE '🟢 В норме'
+  END AS "sla_status",
+  CONCAT(u_tech.firstname, ' ', u_tech.realname) AS "assigned_technician",
+  t.status AS "status"
+FROM glpi_tickets t
+LEFT JOIN glpi_tickets_users tu ON tu.tickets_id = t.id AND tu.type = 2
+LEFT JOIN glpi_users u_tech ON u_tech.id = tu.users_id
+WHERE t.status = 1
+  AND t.is_deleted = 0
+ORDER BY t.date DESC
